@@ -1,0 +1,32 @@
+#!/bin/sh
+
+if ! command -v fzf &> /dev/null; then
+    echo "The fzf command could not be found"
+    exit 1
+fi
+
+node_process_id=$(pgrep node)
+node_process_count=$(pgrep node | wc -l | xargs)
+
+if [ $node_process_count = 0 ]; then
+    exit 0
+fi
+
+if [ $node_process_count -gt 1 ]; then
+    export FZF_DEFAULT_OPTS='--height=30% --layout=reverse --border --header-lines=1'
+    node_process_id=$(ps | awk 'NR==1 || $4 == "node"' | fzf | awk '{print $1}')
+
+    if [ -z $node_process_id ]; then
+        exit 0
+    fi
+fi
+
+kill -USR1 $node_process_id
+
+if [ $? -eq 0 ]; then
+    echo "A debug signal to the node process (PID $node_process_id) was sent."
+    exit 0
+else
+    echo "The debug signal to the node process (PID $node_process_id) could not be sent."
+    exit 1
+fi
